@@ -2,7 +2,7 @@ package handlers
 
 import (
     "github.com/gin-gonic/gin"
-    "github.com/yourusername/simple-monitor/models"
+    "github.com/kaanmertkoc/simple-monitor/models"
 )
 
 const VERSION = "1.0.0"

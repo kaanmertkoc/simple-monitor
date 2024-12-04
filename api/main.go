@@ -4,7 +4,7 @@ import (
     "log"
     "github.com/gin-gonic/gin"
     "github.com/gin-contrib/cors"
-    "github.com/yourusername/simple-monitor/handlers"
+    "github.com/kaanmertkoc/simple-monitor/handlers"
 )
 
 func main() {
