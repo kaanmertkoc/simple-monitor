@@ -1,33 +1,38 @@
 FROM golang:1.21-alpine AS builder
 
-WORKDIR /app
-COPY . .
+WORKDIR /build
 
-# Install build dependencies (including SQLite)
+# Copy only the files needed for go mod download first
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Install only the necessary build dependencies
 RUN apk add --no-cache gcc musl-dev sqlite-dev
 
-RUN go mod download
-# Enable CGO for SQLite
-RUN CGO_ENABLED=1 GOOS=linux go build -o monitor ./api
+# Copy source code
+COPY api/ ./api/
+
+# Build with optimization flags
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=$TARGETARCH \
+    go build -ldflags="-w -s" -o monitor ./api
 
 FROM alpine:latest
 
-# Install SQLite and timezone data
-RUN apk --no-cache add sqlite ca-certificates tzdata
+# Install only the required runtime dependencies
+RUN apk add --no-cache sqlite tzdata
 
-WORKDIR /root/
-COPY --from=builder /app/monitor .
+WORKDIR /app
+COPY --from=builder /build/monitor .
 
 # Create data directory
 RUN mkdir -p /data
 
-# Add healthcheck
-HEALTHCHECK --interval=30s --timeout=3s \
-  CMD wget -qO- http://localhost:8080/health || exit 1
+# Set data directory environment variable
+ENV DATA_DIR=/data
 
 EXPOSE 8080
 
-# Set data directory environment variable
-ENV DATA_DIR=/data
+HEALTHCHECK --interval=30s --timeout=3s \
+  CMD wget -qO- http://localhost:8080/health || exit 1
 
 CMD ["./monitor"]
