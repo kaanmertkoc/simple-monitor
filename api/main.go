@@ -10,17 +10,20 @@ import (
 )
 
 func main() {
-    // Initialize database client
-    dbClient := database.NewClient(
-        os.Getenv("INFLUXDB_URL"),
-        os.Getenv("INFLUXDB_TOKEN"),
-        os.Getenv("INFLUXDB_ORG"),
-        os.Getenv("INFLUXDB_BUCKET"),
-    )
-    defer dbClient.Close()
+    // Initialize database client if environment variables are set
+    var db *database.Client
+    if url := os.Getenv("INFLUXDB_URL"); url != "" {
+        db = database.NewClient(
+            url,
+            os.Getenv("INFLUXDB_TOKEN"),
+            os.Getenv("INFLUXDB_ORG"),
+            os.Getenv("INFLUXDB_BUCKET"),
+        )
+        defer db.Close()
+    }
 
     // Initialize metrics collector
-    collector := handlers.NewMetricsCollector(dbClient)
+    collector := handlers.NewMetricsCollector(db)
 
     gin.SetMode(gin.ReleaseMode)
     r := gin.Default()
@@ -30,7 +33,7 @@ func main() {
     r.Use(cors.New(config))
     r.Use(gin.Recovery())
 
-    // Basic endpoints
+    // Routes
     r.GET("/health", handlers.HealthCheck)
     r.GET("/metrics", func(c *gin.Context) {
         metrics, err := collector.Collect()
@@ -39,17 +42,6 @@ func main() {
             return
         }
         c.JSON(200, metrics)
-    })
-
-    // Historical metrics endpoints
-    r.GET("/metrics/history", func(c *gin.Context) {
-        hours := 3 // Default to 3 hours
-        historical, err := collector.GetHistoricalMetrics(hours)
-        if err != nil {
-            c.JSON(500, gin.H{"error": err.Error()})
-            return
-        }
-        c.JSON(200, historical)
     })
 
     log.Printf("Starting server on :8080")
