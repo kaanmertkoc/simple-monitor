@@ -22,28 +22,9 @@ fi
 
 DOMAIN=$1
 
-# Check if ports 80 and 443 are available and set fallback ports if needed
-check_ports() {
-    local http_port=80
-    local https_port=443
-    
-    if netstat -tuln | grep -q ":80 "; then
-        print_warning "Port 80 is already in use. Using fallback port 8081"
-        http_port=8081
-    fi
-    
-    if netstat -tuln | grep -q ":443 "; then
-        print_warning "Port 443 is already in use. Using fallback port 8443"
-        https_port=8443
-    fi
-    
-    echo "${http_port}:${https_port}"
-}
-
-# Get ports
-PORTS=$(check_ports)
-HTTP_PORT=$(echo $PORTS | cut -d: -f1)
-HTTPS_PORT=$(echo $PORTS | cut -d: -f2)
+# Set fixed unusual ports to avoid conflicts
+HTTP_PORT=7891
+HTTPS_PORT=7892
 
 # Create project directory
 PROJECT_DIR="simple-monitor-${DOMAIN}"
@@ -74,8 +55,8 @@ services:
     image: nginx:alpine
     container_name: monitor-nginx
     ports:
-      - "${HTTP_PORT}:80"
-      - "${HTTPS_PORT}:443"
+      - "7891:80"
+      - "7892:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./certbot/conf:/etc/letsencrypt
@@ -102,13 +83,6 @@ networks:
 EOF
 print_success "Created docker-compose.yml"
 
-# Create .env file with ports
-cat > .env << EOF
-HTTP_PORT=${HTTP_PORT}
-HTTPS_PORT=${HTTPS_PORT}
-EOF
-print_success "Created .env file with port configuration"
-
 # Create required directories
 print_header "Creating Directory Structure"
 mkdir -p nginx/conf.d data certbot/conf certbot/www
@@ -118,8 +92,8 @@ print_success "Created required directories"
 print_header "Configuring Nginx"
 cat > nginx/conf.d/app.conf << EOF
 server {
-    listen ${HTTP_PORT};
-    listen [::]:${HTTP_PORT};
+    listen 80;
+    listen [::]:80;
     server_name ${DOMAIN};
     
     location /.well-known/acme-challenge/ {
@@ -158,8 +132,8 @@ print_success "Obtained SSL certificate"
 print_header "Configuring SSL"
 cat > nginx/conf.d/app.conf << EOF
 server {
-    listen ${HTTP_PORT};
-    listen [::]:${HTTP_PORT};
+    listen 80;
+    listen [::]:80;
     server_name ${DOMAIN};
     
     location /.well-known/acme-challenge/ {
@@ -172,8 +146,8 @@ server {
 }
 
 server {
-    listen ${HTTPS_PORT} ssl;
-    listen [::]:${HTTPS_PORT} ssl;
+    listen 443 ssl;
+    listen [::]:443 ssl;
     server_name ${DOMAIN};
 
     ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
@@ -206,13 +180,11 @@ print_success "All services started"
 
 print_header "Setup Complete!"
 echo -e "Your monitoring service has been set up in: ${GREEN}$(pwd)${NC}"
-echo -e "The service should now be available at: ${GREEN}https://${DOMAIN}${NC}"
-if [ $HTTP_PORT != "80" ] || [ $HTTPS_PORT != "443" ]; then
-    echo -e "\n${YELLOW}Note: Using non-standard ports:${NC}"
-    echo "HTTP port: ${HTTP_PORT}"
-    echo "HTTPS port: ${HTTPS_PORT}"
-    echo "You may need to include the port in your URL if not using a reverse proxy"
-fi
+echo -e "The service should now be available at: ${GREEN}https://${DOMAIN}:${HTTPS_PORT}${NC}"
+echo -e "\n${YELLOW}Note: Using non-standard ports:${NC}"
+echo "HTTP port: ${HTTP_PORT}"
+echo "HTTPS port: ${HTTPS_PORT}"
+echo "Make sure to include the port in your URL: https://${DOMAIN}:${HTTPS_PORT}"
 echo -e "\nTo check the logs:"
 echo "cd ${PROJECT_DIR} && docker compose logs -f"
 echo -e "\nTo stop the service:"

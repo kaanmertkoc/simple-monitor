@@ -15,8 +15,8 @@ services:
     image: nginx:alpine
     container_name: monitor-nginx
     ports:
-      - "${HTTP_PORT:-8081}:80"
-      - "${HTTPS_PORT:-8443}:443"
+      - "7891:80"
+      - "7892:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./certbot/conf:/etc/letsencrypt
