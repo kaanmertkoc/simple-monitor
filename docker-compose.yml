@@ -1,16 +1,42 @@
-version: '3.8'
-
 services:
   monitor:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-    ports:
-      - "8080:8080"
+    image: kaanmertkoc1/simple-monitor:latest
+    container_name: simple-monitor
+    expose:
+      - "8080"
     volumes:
-      - monitor-data:/data
+      - ./data:/data
     restart: unless-stopped
     privileged: true
+    networks:
+      - monitor-network
 
-volumes:
-  monitor-data:
+  nginx:
+    image: nginx:alpine
+    container_name: monitor-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+    networks:
+      - monitor-network
+    depends_on:
+      - monitor
+
+  certbot:
+    image: certbot/certbot
+    container_name: monitor-certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - monitor-network
+
+networks:
+  monitor-network:
+    driver: bridge
