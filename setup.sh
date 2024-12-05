@@ -36,8 +36,6 @@ print_success "Created and moved to directory: $PROJECT_DIR"
 # Create docker-compose.yml
 print_header "Creating Docker Compose Configuration"
 cat > docker-compose.yml << EOF
-version: '3.8'
-
 services:
   monitor:
     image: kaanmertkoc1/simple-monitor:latest
@@ -55,8 +53,8 @@ services:
     image: nginx:alpine
     container_name: monitor-nginx
     ports:
-      - "7891:80"
-      - "7892:443"
+      - "${HTTP_PORT}:80"
+      - "${HTTPS_PORT}:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./certbot/conf:/etc/letsencrypt
@@ -88,6 +86,26 @@ print_header "Creating Directory Structure"
 mkdir -p nginx/conf.d data certbot/conf certbot/www
 print_success "Created required directories"
 
+# Get SSL certificate using standalone mode
+print_header "Obtaining SSL Certificate"
+docker compose down nginx
+docker run -it --rm --name certbot \
+    -v "$PWD/certbot/conf:/etc/letsencrypt" \
+    -v "$PWD/certbot/www:/var/www/certbot" \
+    -p ${HTTP_PORT}:80 \
+    certbot/certbot certonly --standalone \
+    --preferred-challenges http \
+    --email admin@${DOMAIN} \
+    --agree-tos \
+    --no-eff-email \
+    -d ${DOMAIN}
+
+if [ $? -ne 0 ]; then
+    print_error "Failed to obtain SSL certificate"
+    exit 1
+fi
+print_success "Obtained SSL certificate"
+
 # Generate nginx config
 print_header "Configuring Nginx"
 cat > nginx/conf.d/app.conf << EOF
@@ -101,60 +119,7 @@ server {
     }
 
     location / {
-        return 301 https://\$host\$request_uri;
-    }
-}
-EOF
-print_success "Generated initial Nginx configuration"
-
-# Start nginx
-print_header "Starting Services"
-docker compose up -d nginx
-print_success "Started Nginx"
-
-# Before getting SSL, temporarily switch to port 80
-print_header "Obtaining SSL Certificate"
-# Update nginx config to use port 80 temporarily
-docker compose down
-sed -i 's/7891:80/80:80/' docker-compose.yml
-docker compose up -d nginx
-
-# Wait a bit for nginx to start
-sleep 5
-
-# Now try to get the certificate
-docker compose run --rm certbot certonly \
-    --webroot \
-    --webroot-path /var/www/certbot \
-    --email admin@${DOMAIN} \
-    --agree-tos \
-    --no-eff-email \
-    -d ${DOMAIN}
-
-if [ $? -ne 0 ]; then
-    print_error "Failed to obtain SSL certificate"
-    exit 1
-fi
-
-# Switch back to our custom port
-docker compose down
-sed -i 's/80:80/7891:80/' docker-compose.yml
-print_success "Obtained SSL certificate"
-
-# Configure SSL
-print_header "Configuring SSL"
-cat > nginx/conf.d/app.conf << EOF
-server {
-    listen 80;
-    listen [::]:80;
-    server_name ${DOMAIN};
-    
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
-
-    location / {
-        return 301 https://\$host\$request_uri;
+        return 301 https://\$host:\$server_port\$request_uri;
     }
 }
 
@@ -184,7 +149,7 @@ server {
     }
 }
 EOF
-print_success "Generated SSL configuration"
+print_success "Generated Nginx configuration"
 
 # Start all services
 print_header "Starting All Services"
