@@ -13,7 +13,7 @@ import (
 
 func main() {
     // Set up data directory
-    dataDir := "/var/lib/simple-monitor"
+    dataDir := "./simple-monitor"
     if dir := os.Getenv("DATA_DIR"); dir != "" {
         dataDir = dir
     }
