@@ -1,1 +1,65 @@
 .env
+# Go specific
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# Output directories
+bin/
+dist/
+
+# Go workspace file
+go.work
+
+# Project specific
+/simple-monitor/        
+/data/                  
+/metrics.db             
+*.db                    
+
+# Docker & deployment
+.env
+.env.*
+docker-compose.override.yml
+docker/dev.env
+certbot/
+nginx/conf.d/
+nginx/logs/
+
+# IDE specific
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+.history/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.log
+
+# Dependency directories
+vendor/
+
+# Test coverage
+coverage.txt
+coverage.html
+*.cover
+
+# Debug files
+debug/
+*.debug
+__debug_bin
+
+# Build artifacts
+build/
+*.tar.gz
+*.zip
