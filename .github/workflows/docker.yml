@@ -8,6 +8,9 @@ on:
       - 'docker/**'
       - '.github/workflows/docker.yml'
       - 'go.*'
+      - 'setup.sh'
+      - 'docker-compose.yml'
+      - 'nginx-config.template'
 
 jobs:
   docker:

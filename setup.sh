@@ -22,9 +22,39 @@ fi
 
 DOMAIN=$1
 
+# Check if ports 80 and 443 are available and set fallback ports if needed
+check_ports() {
+    local http_port=80
+    local https_port=443
+    
+    if netstat -tuln | grep -q ":80 "; then
+        print_warning "Port 80 is already in use. Using fallback port 8081"
+        http_port=8081
+    fi
+    
+    if netstat -tuln | grep -q ":443 "; then
+        print_warning "Port 443 is already in use. Using fallback port 8443"
+        https_port=8443
+    fi
+    
+    echo "${http_port}:${https_port}"
+}
+
+# Get ports
+PORTS=$(check_ports)
+HTTP_PORT=$(echo $PORTS | cut -d: -f1)
+HTTPS_PORT=$(echo $PORTS | cut -d: -f2)
+
+# Create project directory
+PROJECT_DIR="simple-monitor-${DOMAIN}"
+print_header "Creating Project Directory"
+mkdir -p "$PROJECT_DIR"
+cd "$PROJECT_DIR"
+print_success "Created and moved to directory: $PROJECT_DIR"
+
 # Create docker-compose.yml
 print_header "Creating Docker Compose Configuration"
-cat > docker-compose.yml << 'EOF'
+cat > docker-compose.yml << EOF
 version: '3.8'
 
 services:
@@ -44,13 +74,13 @@ services:
     image: nginx:alpine
     container_name: monitor-nginx
     ports:
-      - "80:80"
-      - "443:443"
+      - "${HTTP_PORT}:80"
+      - "${HTTPS_PORT}:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
-    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+    command: "/bin/sh -c 'while :; do sleep 6h & wait \$\${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
     networks:
       - monitor-network
     depends_on:
@@ -62,7 +92,7 @@ services:
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait \$\${!}; done;'"
     networks:
       - monitor-network
 
@@ -71,6 +101,13 @@ networks:
     driver: bridge
 EOF
 print_success "Created docker-compose.yml"
+
+# Create .env file with ports
+cat > .env << EOF
+HTTP_PORT=${HTTP_PORT}
+HTTPS_PORT=${HTTPS_PORT}
+EOF
+print_success "Created .env file with port configuration"
 
 # Create required directories
 print_header "Creating Directory Structure"
@@ -81,8 +118,8 @@ print_success "Created required directories"
 print_header "Configuring Nginx"
 cat > nginx/conf.d/app.conf << EOF
 server {
-    listen 80;
-    listen [::]:80;
+    listen ${HTTP_PORT};
+    listen [::]:${HTTP_PORT};
     server_name ${DOMAIN};
     
     location /.well-known/acme-challenge/ {
@@ -121,8 +158,8 @@ print_success "Obtained SSL certificate"
 print_header "Configuring SSL"
 cat > nginx/conf.d/app.conf << EOF
 server {
-    listen 80;
-    listen [::]:80;
+    listen ${HTTP_PORT};
+    listen [::]:${HTTP_PORT};
     server_name ${DOMAIN};
     
     location /.well-known/acme-challenge/ {
@@ -135,8 +172,8 @@ server {
 }
 
 server {
-    listen 443 ssl;
-    listen [::]:443 ssl;
+    listen ${HTTPS_PORT} ssl;
+    listen [::]:${HTTPS_PORT} ssl;
     server_name ${DOMAIN};
 
     ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
@@ -168,8 +205,15 @@ docker compose up -d
 print_success "All services started"
 
 print_header "Setup Complete!"
-echo -e "Your monitoring service should now be available at: ${GREEN}https://${DOMAIN}${NC}"
+echo -e "Your monitoring service has been set up in: ${GREEN}$(pwd)${NC}"
+echo -e "The service should now be available at: ${GREEN}https://${DOMAIN}${NC}"
+if [ $HTTP_PORT != "80" ] || [ $HTTPS_PORT != "443" ]; then
+    echo -e "\n${YELLOW}Note: Using non-standard ports:${NC}"
+    echo "HTTP port: ${HTTP_PORT}"
+    echo "HTTPS port: ${HTTPS_PORT}"
+    echo "You may need to include the port in your URL if not using a reverse proxy"
+fi
 echo -e "\nTo check the logs:"
-echo "docker compose logs -f"
+echo "cd ${PROJECT_DIR} && docker compose logs -f"
 echo -e "\nTo stop the service:"
-echo "docker compose down"
+echo "cd ${PROJECT_DIR} && docker compose down"
