@@ -27,7 +27,7 @@ HTTP_PORT=7891
 HTTPS_PORT=7892
 
 # Create project directory
-PROJECT_DIR="simple-monitor-${DOMAIN}"
+PROJECT_DIR="monitor-${DOMAIN}"
 print_header "Creating Project Directory"
 mkdir -p "$PROJECT_DIR"
 cd "$PROJECT_DIR"
