@@ -34,30 +34,27 @@ Before setting up the monitoring service, ensure you have:
    TTL: 3600 (or default)
    ```
 
-## Quick Start
+## Quick Setup
 
-1. **Clone the Repository**
+1. **One-Line Installation**
    ```bash
-   git clone https://github.com/kaanmertkoc/simple-monitor.git
-   cd simple-monitor
+   curl -fsSL https://raw.githubusercontent.com/kaanmertkoc/simple-monitor/main/setup.sh -o setup.sh && chmod +x setup.sh && ./setup.sh your-domain.com
    ```
 
-2. **Make the Setup Script Executable**
+   Or manually:
+
    ```bash
+   # Download setup script
+   wget https://raw.githubusercontent.com/kaanmertkoc/simple-monitor/main/setup.sh
+   
+   # Make it executable
    chmod +x setup.sh
-   ```
-
-3. **Run the Setup Script**
-   ```bash
+   
+   # Run setup with your domain
    ./setup.sh your-domain.com
    ```
 
-The setup script will:
-- Check all prerequisites
-- Set up Nginx as a reverse proxy
-- Obtain an SSL certificate automatically
-- Configure HTTPS
-- Start the monitoring service
+That's it! Your monitoring service will be available at `https://your-domain.com`
 
 ## Common DNS Providers Instructions
 
@@ -92,101 +89,6 @@ The setup script will:
 8. Enter your server's IP
 9. Save
 
-## Troubleshooting
-
-### SSL Certificate Issues
-- Ensure DNS is properly configured
-- Check if ports 80 and 443 are open
-- Wait for DNS propagation (can take up to 48 hours)
-
-### Connection Refused
-1. Check if containers are running:
-   ```bash
-   docker compose ps
-   ```
-2. Check logs:
-   ```bash
-   docker compose logs
-   ```
-
-### Invalid Certificate
-- Make sure your domain is pointing to the correct IP
-- Check if SSL certificate was generated:
-  ```bash
-  ls -la certbot/conf/live/your-domain.com/
-  ```
-
-## Security Notes
-
-This setup includes:
-- Automatic HTTP to HTTPS redirection
-- Modern SSL configuration
-- Regular certificate renewal
-- Secure headers
-
-## Updating
-
-To update the monitoring service:
-
-```bash
-git pull
-docker compose down
-docker compose up -d --build
-```
-
-## License
-
-[Your License]
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-
-# Simple Monitor
-
-A lightweight server monitoring solution that tracks CPU and RAM usage through a secure REST API.
-
-## Quick Setup
-
-1. **Prerequisites**
-   - A server with Docker and Docker Compose installed
-   - A domain name pointing to your server
-   - Ports 80 and 443 available
-
-2. **One-Line Installation**
-   ```bash
-   curl -fsSL https://raw.githubusercontent.com/yourusername/simple-monitor/main/setup.sh -o setup.sh && chmod +x setup.sh && ./setup.sh your-domain.com
-   ```
-
-   Or manually:
-
-   ```bash
-   # Download setup script
-   wget https://raw.githubusercontent.com/yourusername/simple-monitor/main/setup.sh
-   
-   # Make it executable
-   chmod +x setup.sh
-   
-   # Run setup with your domain
-   ./setup.sh your-domain.com
-   ```
-
-That's it! Your monitoring service will be available at `https://your-domain.com`
-
-## DNS Configuration
-
-Before running the setup, make sure your domain points to your server:
-
-1. Get your server's IP address
-2. Add an A record in your DNS settings:
-   ```
-   Type: A
-   Host: @ (or subdomain)
-   Value: Your-Server-IP
-   TTL: 3600
-   ```
-
 ## Manual Setup
 
 If you prefer to set up manually:
@@ -199,7 +101,7 @@ If you prefer to set up manually:
 
 2. Download setup files:
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/yourusername/simple-monitor/main/docker-compose.yml -o docker-compose.yml
+   curl -fsSL https://raw.githubusercontent.com/kaanmertkoc/simple-monitor/main/docker-compose.yml -o docker-compose.yml
    ```
 
 3. Start the service:
@@ -235,32 +137,49 @@ docker compose restart
 
 ## Troubleshooting
 
-1. **Certificate Issues**
+### SSL Certificate Issues
+- Ensure DNS is properly configured
+- Check if ports 80 and 443 are open
+- Wait for DNS propagation (can take up to 48 hours)
+
+To manually trigger certificate renewal:
+```bash
+docker compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot -d your-domain.com
+```
+
+### Connection Refused
+1. Check if containers are running:
    ```bash
-   # Manually trigger certificate renewal
-   docker compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot -d your-domain.com
+   docker compose ps
    ```
-
-2. **Check Logs**
+2. Check logs:
    ```bash
-   # All services
    docker compose logs -f
-
-   # Specific service
+   ```
+   
+   For specific services:
+   ```bash
    docker compose logs -f monitor
    docker compose logs -f nginx
    ```
 
-3. **Common Issues**
-   - Ensure DNS is properly configured
-   - Check if ports 80 and 443 are open
-   - Verify domain points to correct IP
-   - Wait for DNS propagation (up to 48 hours)
+### Invalid Certificate
+- Make sure your domain is pointing to the correct IP
+- Check if SSL certificate was generated:
+  ```bash
+  ls -la certbot/conf/live/your-domain.com/
+  ```
+
+### Common Issues
+- Ensure DNS is properly configured
+- Check if ports 80 and 443 are open
+- Verify domain points to correct IP
+- Wait for DNS propagation (up to 48 hours)
 
 ## Security
 
 This setup includes:
-- Automatic HTTPS redirection
+- Automatic HTTP to HTTPS redirection
 - Modern SSL configuration
 - Regular certificate renewal
 - Secure headers
@@ -275,3 +194,7 @@ If you encounter any issues:
 ## License
 
 [Your License]
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
