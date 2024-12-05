@@ -63,7 +63,6 @@ func (mc *MetricsCollector) getCPUUsage() float64 {
     }
     return 0
 }
-
 func (mc *MetricsCollector) Collect() (*models.Metrics, error) {
     memory, err := mem.VirtualMemory()
     if err != nil {
