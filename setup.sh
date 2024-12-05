@@ -112,8 +112,17 @@ print_header "Starting Services"
 docker compose up -d nginx
 print_success "Started Nginx"
 
-# Get SSL certificate
+# Before getting SSL, temporarily switch to port 80
 print_header "Obtaining SSL Certificate"
+# Update nginx config to use port 80 temporarily
+docker compose down
+sed -i 's/7891:80/80:80/' docker-compose.yml
+docker compose up -d nginx
+
+# Wait a bit for nginx to start
+sleep 5
+
+# Now try to get the certificate
 docker compose run --rm certbot certonly \
     --webroot \
     --webroot-path /var/www/certbot \
@@ -126,6 +135,10 @@ if [ $? -ne 0 ]; then
     print_error "Failed to obtain SSL certificate"
     exit 1
 fi
+
+# Switch back to our custom port
+docker compose down
+sed -i 's/80:80/7891:80/' docker-compose.yml
 print_success "Obtained SSL certificate"
 
 # Configure SSL
