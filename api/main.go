@@ -7,6 +7,7 @@ import (
     "time"
     "github.com/gin-gonic/gin"
     "github.com/gin-contrib/cors"
+    "github.com/shirou/gopsutil/cpu"
     "monitor/api/handlers"
     "monitor/api/database"
 )
@@ -51,6 +52,31 @@ func main() {
             return
         }
         c.JSON(200, metrics)
+    })
+
+    // Summary endpoint
+    r.GET("/summary", func(c *gin.Context) {
+        // Get the latest metrics
+        metrics, err := collector.Collect()
+        if err != nil {
+            c.JSON(500, gin.H{"error": err.Error()})
+            return
+        }
+
+        // Get CPU count
+        cpuCount, err := cpu.Counts(true)
+        if err != nil {
+            cpuCount = 1 // Default to 1 if we can't get the count
+        }
+
+        // Create summary response
+        summary := gin.H{
+            "total_vcpu":   cpuCount,
+            "total_disk":   metrics.Disk.Total,    // in bytes
+            "total_memory": metrics.Memory.Total,  // in bytes
+        }
+
+        c.JSON(200, summary)
     })
 
     // Historical data route
