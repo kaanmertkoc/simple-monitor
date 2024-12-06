@@ -69,9 +69,19 @@ func main() {
             cpuCount = 1 // Default to 1 if we can't get the count
         }
 
+        // Get CPU info
+        cpuInfo, err := cpu.Info()
+        var cpuVendor string
+        if err != nil || len(cpuInfo) == 0 {
+            cpuVendor = "unknown"
+        } else {
+            cpuVendor = cpuInfo[0].VendorID
+        }
+
         // Create summary response
         summary := gin.H{
             "total_vcpu":   cpuCount,
+            "cpu_vendor":   cpuVendor,    // Will show "GenuineIntel" for Intel or "AuthenticAMD" for AMD
             "total_disk":   metrics.Disk.Total,    // in bytes
             "total_memory": metrics.Memory.Total,  // in bytes
         }
