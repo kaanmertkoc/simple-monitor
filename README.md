@@ -144,7 +144,7 @@ docker compose restart
 
 To manually trigger certificate renewal:
 ```bash
-docker compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot -d your-domain.com
+docker compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot -d
 ```
 
 ### Connection Refused
