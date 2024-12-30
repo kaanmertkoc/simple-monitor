@@ -38,7 +38,7 @@ Before setting up the monitoring service, ensure you have:
 
 1. **One-Line Installation**
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/kaanmertkoc/simple-monitor/main/setup.sh -o setup.sh && chmod +x setup.sh && ./setup.sh your-domain.com
+   curl -fsSL https://raw.githubusercontent.com/kaanmertkoc/simple-monitor/main/setup.sh -o setup.sh && chmod +x setup.sh && ./setup.sh
    ```
 
    Or manually:
@@ -51,7 +51,7 @@ Before setting up the monitoring service, ensure you have:
    chmod +x setup.sh
    
    # Run setup with your domain
-   ./setup.sh your-domain.com
+   ./setup.sh
    ```
 
 That's it! Your monitoring service will be available at `https://your-domain.com`
